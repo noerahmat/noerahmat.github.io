@@ -1,4 +1,25 @@
 ```
+graph LR
+    A[CI] -->|fa:fa-gear| B(CD)
+    B  -->|fa:fa-rocket| C{project type}
+    C -->|docker| D[fe]
+    C -->|k8s| E[be]
+    D -->|dest| F[host]
+    E -->|dest| G[namespace]
+```
+
+```mermaid
+graph LR
+    A[CI] -->|fa:fa-gear| B(CD)
+    B  -->|fa:fa-rocket| C{project type}
+    C -->|docker| D[fe]
+    C -->|k8s| E[be]
+    D -->|dest| F[host]
+    E -->|dest| G[namespace]
+```
+
+
+```
 flowchart LR
 
 A[Hard] -->|Text| B(Round)
