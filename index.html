@@ -6,9 +6,12 @@
   <body>
     <pre class="mermaid">
   graph LR
-      A --- B
-      B-->C[fa:fa-ban forbidden]
-      B-->D(fa:fa-spinner);
+    A[CI] -->|fa:fa-gear| B(CD)
+    B  -->|fa:fa-rocket| C{project type}
+    C -->|docker| D[fe]
+    C -->|k8s| E[be]
+    D -->|dest| F[host]
+    E -->|dest| G[namespace]
     </pre>
     <script type="module">
       import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@9/dist/mermaid.esm.min.mjs';
