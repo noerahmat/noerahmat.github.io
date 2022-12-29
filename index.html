@@ -5,13 +5,35 @@
   </head>
   <body>
     <pre class="mermaid">
-  graph LR
-    A[CI] -->|fa:fa-gear| B(CD)
-    B  -->|fa:fa-rocket| C{project type}
-    C -->|docker| D[fe]
-    C -->|k8s| E[be]
-    D -->|dest| F[host]
-    E -->|dest| G[namespace]
+      %%{
+        init: {
+          'theme': 'forest',
+          'themeVariables': {
+            'primaryColor': '#BB2528',
+            'primaryTextColor': '#fff',
+            'primaryBorderColor': '#7C0000',
+            'lineColor': '#F8B229',
+            'secondaryColor': '#006100',
+            'tertiaryColor': '#fff'
+          }
+        }
+      }%%
+        graph LR
+          A[CI] -->|fa:fa-gear| B(CD)
+          B --> D[fe]
+          B --> E[be]
+          D -->|context| F[host]
+          E -->|context| G[namespace]
+      
+          subgraph k8s
+          E
+          G
+          end
+      
+          subgraph docker
+          D
+          F
+          end
     </pre>
     <script type="module">
       import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@9/dist/mermaid.esm.min.mjs';
