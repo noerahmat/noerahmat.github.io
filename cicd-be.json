@@ -1,0 +1,66 @@
+{
+
+	"saas-be-audittrail-manager1": {
+		"IMAGE": "saas-be-audittrail-manager",
+		"NODETYPE": "front",
+		"PORT": "9601",
+		"ENV":{
+			"develop":{
+				"CLUSTER": "develop-qoin",
+				"NAMESPACE": "develop-saas"
+			},
+			"staging":{
+				"CLUSTER": "staging-qoin",
+				"NAMESPACE": "staging-saas"
+			},	
+			"production":{
+				"CLUSTER": "production-saas",
+				"NAMESPACE": "production-saas"
+			}	
+		}
+	},
+	
+	
+	"saas-be-audittrail-manager2": {
+		"IMAGE": "saas-be-audittrail-manager2",
+		"NODETYPE": "front",
+		"PORT": "9601",
+		"ENV":{
+			"develop":{
+				"CLUSTER": "develop-qoin",
+				"NAMESPACE": "develop-saas"
+			},
+			"staging":{
+				"CLUSTER": "staging-qoin",
+				"NAMESPACE": "staging-saas"
+			},	
+			"production":{
+				"CLUSTER": "production-saas",
+				"NAMESPACE": "production-saas"
+			}	
+		}
+	},
+	
+	"saas-be-audittrail-manager3": {
+		"IMAGE": "saas-be-audittrail-manager2",
+		"NODETYPE": "front",
+		"PORT": "9601",
+		"ENV":{
+			"develop":{
+				"CLUSTER": "develop-qoin",
+				"NAMESPACE": "develop-saas"
+			},
+			"staging":{
+				"CLUSTER": "staging-qoin",
+				"NAMESPACE": "staging-saas"
+			},	
+			"production":{
+				"CLUSTER": "production-saas",
+				"NAMESPACE": "production-saas"
+			}	
+		}
+	}
+		
+	
+		
+}		

@@ -1,0 +1,15 @@
+{{- if .Values.configmap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-{{ .Values.name }}
+  # namespace: demo
+data:
+{{- toYaml .Values.ConfigMapData | nindent 12 }}
+  # index.html: |
+    # <html>
+    # <h1>HELLLOOOO</h1>
+    # </br>
+    # <h1>WORLD</h1>
+    # </html>
+{{- end }}

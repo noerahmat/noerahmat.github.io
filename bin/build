@@ -1,0 +1,33 @@
+REGISTRY="loyaltolpi"
+REGISTRY01="registry01.loyalto.id"
+# REPO=$(basename -s .git `git config --get remote.origin.url`)
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+LATEST_COMMIT=$(git rev-parse --short HEAD)
+
+if [ "${BRANCH}" = "production" ]
+then
+    LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+    TAG=${LATEST_TAG}
+else
+    TAG=${LATEST_COMMIT}
+fi
+
+echo "=======================================";
+echo "BUILD IS STARTED.......................";
+echo "=======================================";
+time docker build \
+--build-arg REGISTRY01=${REGISTRY01} \
+--build-arg BRANCH=${BRANCH} \
+--build-arg PROJECT=$(jq -r ".DEPLOYMENT" cicd/cicd.json) \
+--build-arg PORT=$(jq -r ".PORT" cicd/cicd.json) \
+-t ${REGISTRY}/$(jq -r ".IMAGE" cicd/cicd.json):${TAG} -f Dockerfile . \
+| tee /tmp/${REGISTRY}-${IMAGE}-${TAG}_result.log
+
+RESULT=$(cat /tmp/${REGISTRY}-${IMAGE}-${TAG}_result.log | tail -n 1)
+if [[ "$RESULT" != *Successfully* ]];
+then
+echo "!!!!FAIL"
+  exit -1
+else
+echo "BUILD IS SUCCESSFULLY ====>>> ${REGISTRY}/$(jq -r ".IMAGE" cicd/cicd.json):${TAG} ===>>>"
+fi

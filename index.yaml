@@ -1,0 +1,45 @@
+apiVersion: v1
+entries:
+  qoin:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2022-11-04T21:57:53.613594345+07:00"
+    description: A Helm chart for Kubernetes
+    digest: f8b5d3d308da26a3c0b2f505cb26e0ed739c4a6a909adc4b48b42db8f97223c5
+    name: qoin
+    type: application
+    urls:
+    - https://newrahmat.bitbucket.io/qoin-0.3.0.tgz
+    version: 0.3.0
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2022-11-04T21:57:53.612429806+07:00"
+    description: A Helm chart for Kubernetes
+    digest: 531fa6e0e34be76c1e1a6e8affbb18942130f09a61c1dc9e5e471abdc19facf3
+    name: qoin
+    type: application
+    urls:
+    - https://newrahmat.bitbucket.io/qoin-0.2.0.tgz
+    version: 0.2.0
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2022-11-04T21:57:53.611453857+07:00"
+    description: A Helm chart for Kubernetes
+    digest: 6ef75538ced68968c41b11a216f492a3fafc3ca2528504e9aadfc476020123b8
+    name: qoin
+    type: application
+    urls:
+    - https://newrahmat.bitbucket.io/qoin-0.1.0.tgz
+    version: 0.1.0
+  sosmed:
+  - apiVersion: v2
+    appVersion: 1.16.0
+    created: "2022-11-04T21:57:53.614161517+07:00"
+    description: A Helm chart for Kubernetes
+    digest: 65d17a2600a322a592accc139cb2c01eb2d400f9f6726834cede80468b546472
+    name: sosmed
+    type: application
+    urls:
+    - https://newrahmat.bitbucket.io/sosmed-0.1.0.tgz
+    version: 0.1.0
+generated: "2022-11-04T21:57:53.6103974+07:00"

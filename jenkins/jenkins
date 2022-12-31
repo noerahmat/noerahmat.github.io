@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+#https://support.cloudbees.com/hc/en-us/articles/220857567-How-to-create-a-job-using-the-REST-API-and-cURL-
+
+# eval "$(jq -r '. | to_entries | .[] | .key + "=\"" + .value + "\""' < cicd/cicd.json)"
+REPO=$(basename -s .git `git config --get remote.origin.url`)
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+LATEST_COMMIT=$(git rev-parse --short HEAD)
+# REGISTRY="loyaltolpi"
+# ##REGISTRY="10.11.1.4:5000"
+# ##REGISTRY="193.1.1.4:5000"
+# REGISTRY01="registry01.loyalto.id"
+# CLUSTER=${BRANCH}-${CLUSTER}
+# NAMESPACE=${BRANCH}-${PROJECT}
+
+# JENKINS_TOKEN=1103cadb35472c9fa08c89590a2b92d418
+# JENKINS_USER=mamat
+# JENKINS_URL=193.1.1.3:8080
+JOB_NAME=DEV-QOIN-wal-be-bagikartuinstan-manager
+
+    USER_JENKINS=mamat
+    TOKEN_JENKINS=1103cadb35472c9fa08c89590a2b92d418
+    URL_JENKINS=http://193.1.1.3:8080
+
+# CRUMB=$(curl -s '${URL_JENKINS}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)' -u ${USER_JENKINS}:${TOKEN_JENKINS})
+# CRUMB=$(curl -s 'http://193.1.1.3:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)' -u mamat:1103cadb35472c9fa08c89590a2b92d418)
+#CRUMB JENKINS
+# CRUMB=$(curl -s 'http://${JENKINS_USER}:${JENKINS_TOKEN}@${JENKINS_URL}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)')
+
+
+
+
+
+if [ "${BRANCH}" = "production" ]
+then
+    LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+    TAG=${LATEST_TAG}
+else
+    TAG=${LATEST_COMMIT}
+fi
+
+
+if [ "${BRANCH}" = "develop-sandbox" ]
+then
+  CLUSTER="develop-qoin"
+  NAMESPACE="develop-sandbox"
+elif [ "${BRANCH}" = "staging-sandbox" ]
+then
+  CLUSTER="staging-qoin"
+  NAMESPACE="staging-sandbox"
+elif [ "${BRANCH}" = "sandbox"  ]
+then
+  CLUSTER="sandbox-qoin"
+  NAMESPACE="sandbox-qoin"
+fi
+
+
+# # if docker login registry01.loyalto.id
+# is_logged_in_registry01() {
+#   cat ~/.docker/config.json | jq -r --arg url "registry01.loyalto.id" '.auths | has($url)'
+# }
+
+
+
+case "$1" in
+
+  build|b)
+    echo "BUILD JOB"
+
+    ;;
+
+  trigger|t)
+    echo "trigger job"
+    #TRIGGER JOB BUILD
+    # curl -X POST -u ${JENKINS_USER}:${JENKINS_TOKEN} http://193.1.1.3:8080/job/${JOB_NAME}/build    
+    # USER_JENKINS=mamat
+    # TOKEN_JENKINS=1103cadb35472c9fa08c89590a2b92d418
+    # URL_JENKINS=http://193.1.1.3:8080
+    # JOB_NAME=${1}
+    curl -X POST -u ${USER_JENKINS}:${TOKEN_JENKINS} ${URL_JENKINS}/job/${JOB_NAME}/build
+    ;;
+
+  status|s)
+    echo "status job"
+    #GET JOB RESULT 
+    curl -X GET -u ${USER_JENKINS}:${TOKEN_JENKINS} ${URL_JENKINS}/job/${JOB_NAME}/lastBuild/api/json | jq .result
+
+    ;;
+
+  getconfig|gc)
+    echo "status job"
+    #GET JOB RESULT 
+    curl -X GET ${URL_JENKINS}/job/${JOB_NAME}/config.xml -u ${USER_JENKINS}:${TOKEN_JENKINS} -o mylocalconfig.xml
+
+    ;;
+
+
+  create|c)
+    echo "create job"
+    CRUMB=$(curl -s 'http://193.1.1.3:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)' -u mamat:1103cadb35472c9fa08c89590a2b92d418)
+    echo $CRUMB
+    curl -s -XPOST 'http://193.1.1.3:8080/createItem?name=TESJOBJENKINS' -u mamat:1103cadb35472c9fa08c89590a2b92d418 --data-binary @config.xml -H "$CRUMB" -H "Content-Type:text/xml"
+    # curl -s -XPOST "${URL_JENKINS}/createItem?name=JOBTEST" -u ${USER_JENKINS}:${TOKEN_JENKINS} --data-binary @config.xml -H "$CRUMB" -H "Content-Type:text/xml"
+    # curl -s -XPOST "${URL_JENKINS}/createItem?name=JOBTEST" -u ${USER_JENKINS}:${TOKEN_JENKINS} --data-binary @config.xml -H "Content-Type:text/xml"
+
+
+    ;;
+
+
+# curl -X GET http://example.com/job/test/config.xml -u username:API_TOKEN -o mylocalconfig.xml
+# curl -s -XPOST 'http://example.com/createItem?name=yourJobName' -u username:API_TOKEN --data-binary @mylocalconfig.xml -H "Content-Type:text/xml"
+   
+  *)
+echo "=======================================";
+echo "JENKINS API";
+echo "=======================================";
+    ;;
+esac

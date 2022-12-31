@@ -1,0 +1,6 @@
+echo "scan config"
+#update tag repo manifest
+echo "update version manifest......"
+#argocd login
+#argocd sync app
+echo "argocd sync app"

@@ -1,0 +1,6 @@
+# export REGISTY_USER=newrahmat
+# export REGISTY_PASSWORD=87d1df79-0d21-47c8-b808-89a0ac73c3b1
+docker run -ti --rm -e "REGISTY_PASSWORD=$REGISTY_PASSWORD" -e "REGISTY_USER=$REGISTY_USER" -v "/var/run/docker.sock:/var/run/docker.sock:rw"  -v $(pwd):/cicd newrahmat/cicd sh -c "$@"
+# VAR=$@ && docker run -ti --rm -e "REGISTY_PASSWORD=$REGISTY_PASSWORD" -e "REGISTY_USER=$REGISTY_USER" -v "/var/run/docker.sock:/var/run/docker.sock:rw"  -v $(pwd):/cicd newrahmat/cli sh -c "${VAR}"
+
+# VAR=$@ && docker run -ti --rm -v "/var/run/docker.sock:/var/run/docker.sock:rw" -v ${HOME}:/root  -v $(pwd):/cicd newrahmat/cli sh -c "${VAR}"

@@ -1,0 +1,9 @@
+{{- if .Values.probe.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cm-health-{{ .Values.name }}
+  # namespace: demo
+data:
+  health: "i'am health.............."
+{{- end }}

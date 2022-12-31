@@ -1,0 +1,58 @@
+#docker login
+echo "registry login...."
+echo "$REGISTY_PASSWORD" | docker login --username $REGISTY_USER --password-stdin
+#docker push
+echo "push registry..."
+
+
+# -----------------------------------------------------------------------------------
+eval "$(jq -r '. | to_entries | .[] | .key + "=\"" + .value + "\""' < cicd/cicd.json)"
+REPO=$(basename -s .git `git config --get remote.origin.url`)
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+LATEST_COMMIT=$(git rev-parse --short HEAD)
+REGISTRY="loyaltolpi"
+REGISTRY01="registry01.loyalto.id"
+
+if [ "${BRANCH}" = "production" ]
+then
+    LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+    TAG=${LATEST_TAG}
+else
+    TAG=${LATEST_COMMIT}
+fi
+
+
+if [ "${BRANCH}" = "develop-sandbox" ]
+then
+  CLUSTER="develop-qoin"
+  NAMESPACE="develop-sandbox"
+elif [ "${BRANCH}" = "staging-sandbox" ]
+then
+  CLUSTER="staging-qoin"
+  NAMESPACE="staging-sandbox"
+elif [ "${BRANCH}" = "sandbox"  ]
+then
+  CLUSTER="sandbox-qoin"
+  NAMESPACE="sandbox-qoin"
+fi
+# -----------------------------------------------------------------------------------
+
+# release
+release_step(){
+
+echo "=======================================";
+echo " 📦 RELEASE ..........................";
+echo "=======================================";
+docker push ${REGISTRY}/${IMAGE}:${TAG}
+CHECK=$(docker manifest inspect ${REGISTRY}/${IMAGE}:${TAG} > /dev/null ; echo $?)
+if [[ "$CHECK" != 0 ]];
+then
+echo "!!!!FAIL"
+  exit -1
+else
+echo " ✔️ RELEASE IS DONE ====>>> ${REGISTRY}/${IMAGE}:${TAG} ===>>>"
+fi
+}
+
+
+release_step

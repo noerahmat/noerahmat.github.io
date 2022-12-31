@@ -1,0 +1,8 @@
+{
+    "IMAGE": "wal-be-account-module",
+    "CLUSTER": "qoin",
+    "PROJECT": "ewallet",
+    "DEPLOYMENT": "wal-be-account-module",
+    "NODETYPE": "front",
+    "PORT": "80"
+}

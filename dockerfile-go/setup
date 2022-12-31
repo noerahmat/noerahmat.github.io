@@ -1,0 +1,15 @@
+# sh -c "$(curl -fsSL https://bitbucket.org/newrahmat/newrahmat.bitbucket.org/raw/master/dockerfile-fe/setup)"
+echo "builder.Dockerfile"
+sh -c "$(curl -fsSL https://bitbucket.org/newrahmat/newrahmat.bitbucket.org/raw/master/dockerfile-fe/builder.Dockerfile -o builder.Dockerfile )"
+echo "Dockerfile"
+sh -c "$(curl -fsSL https://bitbucket.org/newrahmat/newrahmat.bitbucket.org/raw/master/dockerfile-fe/Dockerfile -o Dockerfile )"
+echo "default.conf"
+sh -c "$(curl -fsSL https://bitbucket.org/newrahmat/newrahmat.bitbucket.org/raw/master/dockerfile-fe/default.conf -o default.conf )"
+
+# if [ -f "main.go" ]; then
+#     echo "main.go ...existing"
+#     sed -i 's/server.go/main.go/g' builder.Dockerfile
+#     sed -i 's/server.go/main.go/g' Dockerfile
+# else
+#     echo "server.go ...existing"
+# fi

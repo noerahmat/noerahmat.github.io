@@ -1,61 +1,136 @@
-```
-graph LR
-    A[CI] -->|fa:fa-gear| B(CD)
-    B  -->|fa:fa-rocket| C{project type}
-    C -->|docker| D[fe]
-    C -->|k8s| E[be]
-    D -->|dest| F[host]
-    E -->|dest| G[namespace]
-```
+# Helm Chart Qoin
 
-```mermaid
-graph LR
-    A[CI] -->|fa:fa-gear| B(CD)
-    B  -->|fa:fa-rocket| C{project type}
-    C -->|docker| D[fe]
-    C -->|k8s| E[be]
-    D -->|dest| F[host]
-    E -->|dest| G[namespace]
-```
-
+>How to create ?
+ 
+#make directori helm-chart-sources
 
 ```
-flowchart LR
+mkdir -p ./
+helm-chart-sources
+```
+#create helm chart
 
-A[Hard] -->|Text| B(Round)
-B --> C{Decision}
-C -->|One| D[Result 1]
-C -->|Two| E[Result 2]
+```
+helm create helm-chart-sources/helm-chart-test 
 ```
 
-```mermaid
-flowchart LR
+Lint the chart
 
-A[Hard] -->|Text| B(Round)
-B --> C{Decision}
-C -->|One| D[Result 1]
-C -->|Two| E[Result 2]
+`helm lint helm-chart-sources/*`
+
+#Create the Helm chart package
+
+```
+helm package helm-chart-sources/*
+```
+#Create the Helm chart repository index
+
+```
+helm repo index --url https://newrahmat.bitbucket.io .
+```
+
+!Add new charts to an existing repository
+```
+helm repo index --url https://newrahmat.bitbucket.io --merge index.yaml .
 ```
 
 
+--> And Configure the “helm-chart” repository as pages site
+
+
+> How to setup ?
+
+#Configure helm client
 ```
-gantt
-    section Section
-    Completed :done,    des1, 2014-01-06,2014-01-08
-    Active        :active,  des2, 2014-01-07, 3d
-    Parallel 1   :         des3, after des1, 1d
-    Parallel 2   :         des4, after des1, 1d
-    Parallel 3   :         des5, after des3, 1d
-    Parallel 4   :         des6, after des4, 1d
+helm repo add loyaltolpi https://newrahmat.bitbucket.io
+```
+#Update the Helm chart repository
+```
+helm repo update
 ```
 
-```mermaid
-gantt
-    section Section
-    Completed :done,    des1, 2014-01-06,2014-01-08
-    Active        :active,  des2, 2014-01-07, 3d
-    Parallel 1   :         des3, after des1, 1d
-    Parallel 2   :         des4, after des1, 1d
-    Parallel 3   :         des5, after des3, 1d
-    Parallel 4   :         des6, after des4, 1d
+
+#Update the Helm chart repository
+```
+helm show values loyaltolpi/qoin
+```
+
+
+> Requrement 
+
+```
+k8s and helm install
+```
+
+> How to use ?
+
+#setup secret
+```
+kubectl create secret docker-registry regcred --docker-server=<your-registry-server> --docker-username=<your-name> --docker-password=<your-pword> --docker-email=<your-email>
+```
+
+*docker-server dockerhub is = docker.io
+
+#go / php / python
+```
+helm install \
+qoin-be-client-manager loyaltolpi/qoin \
+--set name=qoin-be-client-manager \
+--set port=8086 \
+--set image.repo=loyaltolpi/qoin-be-client-manager \
+--set image.tag=2e6d963 \
+--set privateReg.enabled=true \
+--set secretName=regcred 
+```
+
+
+#dotnet with arg 
+```
+helm install \
+wal-be-jatis-manager loyaltolpi/qoin \
+--set name=wal-be-jatis-manager \
+--set project=ewallet \
+--set type=front \
+--set env=develop \
+--set port=4000 \
+--set image.repo=loyaltolpi/wal-be-jatis-manager \
+--set image.tag=c817189 \
+--set arg.enabled=true \
+--set privateReg.enabled=true \
+--set secretName=regcred
+```
+
+#dotnet with env variable manager
+```
+helm install \
+wal-be-bankcode-manager loyaltolpi/qoin \
+--set name=wal-be-bankcode-manager \
+--set project=ewallet \
+--set type=front \
+--set env=develop \
+--set port=1007 \
+--set image.repo=loyaltolpi/wal-be-bankcode-manager \
+--set image.tag=19e82e4 \
+--set envVar.enabled=true \
+--set envName=ASPNETCORE_ENVIRONMENT \
+--set privateReg.enabled=true \
+--set secretName=regcred 
+```
+
+#dotnet with env variable module
+```
+helm install \
+wal-be-bankcode-module loyaltolpi/qoin \
+--set timezone.enabled=true \
+--set name=wal-be-bankcode-module \
+--set project=ewallet \
+--set type=back \
+--set env=develop \
+--set port=80 \
+--set image.repo=loyaltolpi/wal-be-bankcode-module \
+--set image.tag=ade6587 \
+--set envVar.enabled=true \
+--set envName=DOTNET_ENVIRONMENT \
+--set privateReg.enabled=true \
+--set secretName=regcred 
 ```

@@ -1,0 +1,330 @@
+#!/usr/bin/env bash
+
+eval "$(jq -r '. | to_entries | .[] | .key + "=\"" + .value + "\""' < cicd/cicd.json)"
+REPO=$(basename -s .git `git config --get remote.origin.url`)
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+LATEST_COMMIT=$(git rev-parse --short HEAD)
+REGISTRY="loyaltolpi"
+##REGISTRY="10.11.1.4:5000"
+##REGISTRY="193.1.1.4:5000"
+REGISTRY01="registry01.loyalto.id"
+CLUSTER=${BRANCH}-${CLUSTER}
+NAMESPACE=${BRANCH}-${PROJECT}
+USERNAME="newrahmat"
+APP_PASSWORD="bTYhLgGfDzC4YhVrzwXk"
+OWNER="loyaltoid"
+
+
+if [ "${BRANCH}" = "production" ]
+then
+    LATEST_TAG=$(git describe --tags `git rev-list --tags --max-count=1`)
+    TAG=${LATEST_TAG}
+else
+    TAG=${LATEST_COMMIT}
+fi
+
+
+if [ "${BRANCH}" = "develop-sandbox" ]
+then
+  CLUSTER="develop-qoin"
+  NAMESPACE="develop-sandbox"
+elif [ "${BRANCH}" = "staging-sandbox" ]
+then
+  CLUSTER="staging-qoin"
+  NAMESPACE="staging-sandbox"
+elif [ "${BRANCH}" = "sandbox"  ]
+then
+  CLUSTER="sandbox-qoin"
+  NAMESPACE="sandbox-qoin"
+fi
+
+
+# if docker login registry01.loyalto.id
+is_logged_in_registry01() {
+  cat ~/.docker/config.json | jq -r --arg url "registry01.loyalto.id" '.auths | has($url)'
+}
+
+# builder
+builder_step(){
+
+    # docker pull ${REGISTRY01}/${IMAGE}:builder 2>/dev/null || \
+    echo "=======================================";
+    echo "BUILDER";
+    echo "=======================================";
+    time docker build --build-arg BRANCH=${BRANCH} --build-arg PROJECT=${IMAGE} --build-arg PORT=${PORT} -t ${REGISTRY01}/${IMAGE}:builder -f builder.Dockerfile . | tee .${REGISTRY01}-${IMAGE}-builder_result.log
+
+    echo "BUILD ====>>> ${REGISTRY01}/${IMAGE}:builder ===>>>"
+    RESULT=$(cat .${REGISTRY01}-${IMAGE}-builder_result.log | tail -n 1)
+    if [[ "$RESULT" != *Successfully* ]];
+    then
+    echo "!!!!FAIL"
+      exit -1
+    fi
+
+
+if [[ "$(is_logged_in_registry01)" == "true" ]]; then
+  echo "sudah login"
+    time docker push ${REGISTRY01}/${IMAGE}:builder
+fi
+
+
+}
+
+
+# build
+build_step(){
+
+echo "=======================================";
+echo " ⛏️  BUILD ...........................";
+echo "=======================================";
+time docker build --build-arg REGISTRY01=${REGISTRY01} --build-arg BRANCH=${BRANCH} --build-arg PROJECT=${IMAGE} --build-arg PORT=${PORT} -t ${REGISTRY}/${IMAGE}:${TAG} -f Dockerfile . | tee .${REGISTRY}-${IMAGE}-${TAG}_result.log
+
+RESULT=$(cat .${REGISTRY}-${IMAGE}-${TAG}_result.log | tail -n 1)
+if [[ "$RESULT" != *Successfully* ]];
+then
+echo "!!!!FAIL"
+  exit -1
+else
+echo " ✔️  BUILD IS DONE ====>>> ${REGISTRY}/${IMAGE}:${TAG} ===>>>"
+fi
+
+}
+
+test_step(){
+
+echo "=======================================";
+echo " 🧪   TEST ............................";
+echo "=======================================";
+time docker build --build-arg REGISTRY01=${REGISTRY01} --build-arg BRANCH=${BRANCH} --build-arg PROJECT=${IMAGE} --build-arg PORT=${PORT} -t ${REGISTRY}/${IMAGE}:${TAG} -f test.Dockerfile . | tee .${REGISTRY}-${IMAGE}-${TAG}_result.log
+
+RESULT=$(cat .${REGISTRY}-${IMAGE}-${TAG}_result.log | tail -n 1)
+if [[ "$RESULT" != *Successfully* ]];
+then
+echo "!!!!FAIL"
+  exit -1
+else
+echo " ✔️   TEST IS DONE ====>>> ${REGISTRY}/${IMAGE}:${TAG} ===>>>"
+fi
+
+}
+
+# release
+release_step(){
+
+echo "=======================================";
+echo " 📦 RELEASE ..........................";
+echo "=======================================";
+docker push ${REGISTRY}/${IMAGE}:${TAG}
+CHECK=$(docker manifest inspect ${REGISTRY}/${IMAGE}:${TAG} > /dev/null ; echo $?)
+if [[ "$CHECK" != 0 ]];
+then
+echo "!!!!FAIL"
+  exit -1
+else
+echo " ✔️ RELEASE IS DONE ====>>> ${REGISTRY}/${IMAGE}:${TAG} ===>>>"
+fi
+}
+
+# deploy
+deploy_step(){
+echo "=======================================";
+echo " 🚀 DEPLOY.............................";
+echo "=======================================";
+kubectl config use-context ${CLUSTER}
+CHART="loyaltolpi/qoin"
+VALUES="cicd/k8s/${BRANCH}-values.yaml"
+COMMAND="-n=${NAMESPACE} ${DEPLOYMENT} ${CHART} -f ${VALUES} --set env=${BRANCH} --set image.tag=${TAG}"
+helm install ${COMMAND} && echo "helm install" && 2>/dev/null || \
+helm upgrade ${COMMAND} && echo "helm upgrade" && 2>/dev/null || \
+kubectl -n=${NAMESPACE} set image deployment/${DEPLOYMENT} ${DEPLOYMENT}=${REGISTRY}/${IMAGE}:${TAG} --record && \
+echo "set image deployment"
+# kubectl -n=${NAMESPACE} rollout status deployment.v1.apps/${DEPLOYMENT}
+
+
+CHECK=$(kubectl -n=${NAMESPACE} rollout status deployment.v1.apps/${DEPLOYMENT} > /dev/null ; echo $?)
+if [[ "$CHECK" != 0 ]];
+then
+echo "!!!!FAIL"
+  exit -1
+else
+kubectl -n=${NAMESPACE} rollout status deployment.v1.apps/${DEPLOYMENT}
+kubectl -n=${NAMESPACE} get deploy ${DEPLOYMENT}
+kubectl -n=${NAMESPACE} get service ${DEPLOYMENT}
+echo " ✔️  DEPLOY IS DONE ====>>>" 
+kubectl -n=${NAMESPACE} get deploy ${DEPLOYMENT} -o=jsonpath='{$.spec.template.spec.containers[:1].image}'
+echo " ===>> at CLUSTER : ${CLUSTER} and NAMESPACE : ${NAMESPACE} ===>>>"
+
+fi
+
+}
+
+
+# test_connection
+test_connect_step(){
+
+echo "=======================================";
+echo " TEST CONNECTION ..........................";
+echo "=======================================";
+kubectl config use-context ${CLUSTER}   
+kubectl -n ${NAMESPACE} run -it --rm --image=alpine --overrides='{"spec": { "nodeSelector": {"nodetype": "'${NODETYPE}'"}}}' --restart=Never alpinetest -- wget ${DEPLOYMENT}:${PORT} | grep Connecting  && echo "Service is Connecting" 2>/dev/null || echo "Service is Not Connecting"    
+
+
+}
+
+
+# scan 
+scan(){
+
+    echo "=======================================";
+    echo " SCAN IMAGE VULNERABILILTY ..........................";
+    echo "=======================================";
+    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+    -v $HOME/Library/Caches:/root/.cache/ -v "${PWD}:/app" -w /app  aquasec/trivy:0.21.3 \
+    --exit-code 0 --no-progress --format template --template "@cicd/html.tpl" -o cicd/index.html ${REGISTRY}/${IMAGE}:${TAG}
+
+}
+
+
+# git push
+git_pull(){
+echo "=======================================";
+echo " GIT PULL ..........................";
+echo "=======================================";
+git pull https://${USERNAME}:${APP_PASSWORD}@bitbucket.org/${OWNER}/${REPO}.git $(git rev-parse --abbrev-ref HEAD)
+
+}
+
+
+
+# git push
+git_push(){
+echo "=======================================";
+echo " GIT PUSH ..........................";
+echo "=======================================";
+# git add --all && git commit -am "CI/CD $(git rev-parse --short HEAD)" && git push origin $(git rev-parse --abbrev-ref HEAD)
+# USERNAME="newrahmat"
+# APP_PASSWORD="bTYhLgGfDzC4YhVrzwXk"
+# OWNER="loyaltoid"
+# REPO=$(basename -s .git `git config --get remote.origin.url`)
+git add --all && git commit -am "CI/CD $(git rev-parse --short HEAD)" && git push https://${USERNAME}:${APP_PASSWORD}@bitbucket.org/${OWNER}/${REPO}.git $(git rev-parse --abbrev-ref HEAD)
+
+}
+
+case "$1" in
+
+  run|r)
+    echo "DOCKER RUN"
+    docker run -d -p ${PORT}:${PORT} --name ${IMAGE} ${REGISTRY}/${IMAGE}:${TAG}
+    ;;
+
+  con|c)
+    test_connect_step
+    ;;
+
+
+
+  migrate-helm|mh)
+    echo "migrate to helm deployment"
+    kubectl config use-context ${CLUSTER}
+    helm -n=${NAMESPACE} history ${DEPLOYMENT} 2>/dev/null || echo "helm chart not exist" && \
+    kubectl -n=${NAMESPACE} delete deploy ${DEPLOYMENT}  2>/dev/null || echo "deployment not exist"
+    kubectl -n=${NAMESPACE} delete service ${DEPLOYMENT} 2>/dev/null || echo "service not exist"
+    CHART="loyaltolpi/qoin"
+    VALUES="cicd/k8s/${BRANCH}-values.yaml"
+    COMMAND="-n=${NAMESPACE} ${DEPLOYMENT} ${CHART} -f ${VALUES} --set env=${BRANCH} --set image.tag=${TAG}"
+    helm install ${COMMAND} && echo "helm install" && 2>/dev/null || \
+    echo "image existing : " && kubectl -n=${NAMESPACE} get deploy ${DEPLOYMENT} -o=jsonpath='{$.spec.template.spec.containers[:1].image}'    
+    ;;
+
+  logs|l)
+    echo "DOCKER RUN"
+    docker logs ${IMAGE}
+    ;;
+
+  remove|rm)
+    echo "DOCKER RUN"
+    docker rm -f ${IMAGE}
+    ;;
+
+
+   builder|br)
+  # builder step 
+    builder_step
+    ;;
+
+   build|b)
+  #  git_pull
+    if [ -f "builder.Dockerfile" ]; then
+        # echo "builder.Dockerfile exists."
+        docker pull ${REGISTRY01}/${IMAGE}:builder
+        if [[ "$(docker images -q ${REGISTRY01}/${IMAGE}:builder 2> /dev/null)" == "" ]]; then
+        builder_step
+        fi
+        build_step
+    else 
+        # echo "builder.Dockerfile does not exist."
+        build_step
+    fi
+    ;;
+
+
+
+   test|t)
+    scan
+    # trivy image --severity HIGH,CRITICAL ${REGISTRY}/${IMAGE}:${TAG}
+    # trivy --exit-code 0 --no-progress --format template --template "@cicd/html.tpl" -o cicd/scan_results.html ${REGISTRY}/${IMAGE}:${TAG}
+    if [ -f "test.Dockerfile" ]; then
+        # echo "builder.Dockerfile exists."
+        test_step
+    else 
+        echo " 🧪 TEST PASS";
+    fi
+    ;;
+
+
+
+  release|r)
+# release step
+    release_step
+
+    ;;
+
+
+
+  deploy|d)
+# deploy step
+    deploy_step
+    test_connect_step
+    # git_push
+    ;;
+
+
+
+
+   
+  *)
+echo "=======================================";
+echo "INFO CICD";
+echo "=======================================";
+echo "BUILDER     : ${REGISTRY01}/${IMAGE}:builder" 
+echo "BUILD_IMAGE : ${REGISTRY}/${IMAGE}:${TAG}" 
+echo "=======================================";
+echo "REPO       : $REPO"
+echo "IMAGE      : $IMAGE"
+echo "CLUSTER    : $CLUSTER"
+echo "NAMESPACE  : $NAMESPACE"
+echo "PROJECT    : $PROJECT"
+echo "DEPLOYMENT : $DEPLOYMENT"
+echo "NODETYPE   : $NODETYPE"
+echo "PORT       : $PORT"
+echo "=======================================";
+echo "EXISTING DEPLOYMENT"
+echo "=======================================";
+kubectl config use-context ${CLUSTER}
+helm -n=${NAMESPACE} history ${DEPLOYMENT} 2>/dev/null || echo "helm chart not exist"
+kubectl -n=${NAMESPACE} get deploy ${DEPLOYMENT}  2>/dev/null || echo "deployment not exist"
+kubectl -n=${NAMESPACE} get service ${DEPLOYMENT} 2>/dev/null || echo "service not exist"
+echo "IMAGE EXISTING : " 
+kubectl -n=${NAMESPACE} get deploy ${DEPLOYMENT} -o=jsonpath='{$.spec.template.spec.containers[:1].image}'
+    ;;
+esac

@@ -1,0 +1,8 @@
+{
+    "IMAGE": "nama-image",
+    "CLUSTER": "digital",
+    "PROJECT": "nttewallet",
+    "DEPLOYMENT": "deploy-name",
+    "NODETYPE": "front",
+    "PORT": "8080"
+}

@@ -1,0 +1,199 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  labels:
+    app: {{ .Values.name }}
+    project: {{ .Values.project }}
+    role: {{ .Values.type }}
+    env: {{ .Values.env }}
+spec:
+  strategy:
+    rollingUpdate:
+      maxSurge: 100%
+      maxUnavailable: 0
+    type: RollingUpdate
+
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+      project: {{ .Values.project }}
+      role: {{ .Values.type }}
+      env: {{ .Values.env }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        app: {{ .Values.name }}
+        project: {{ .Values.project }}
+        role: {{ .Values.type }}
+        env: {{ .Values.env }}
+    spec:
+      {{- if .Values.privateReg.enabled }}
+      imagePullSecrets:
+      - name: {{ .Values.secretName }}
+      {{- end }}
+{{- if .Values.serviceAccount.create -}}      
+      serviceAccountName: {{ .Values.name }}
+{{- end }}      
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Values.name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+  {{- if .Values.arg.enabled }}
+          args:
+          - dotnet
+          - {{ .Values.name }}.dll
+          - --environment={{ .Values.env }}
+  {{- end }}
+  {{- if .Values.envVar.enabled }}
+          env:
+          - name: {{ .Values.envName }}
+            value: {{ .Values.env }}
+  {{- end }}
+          image: "{{ .Values.image.repo }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+   {{- if .Values.configmap.enabled }}
+          envFrom:
+            - configMapRef:
+                name: cm-{{ .Values.name }}
+   {{- end }}  
+
+  {{- if .Values.VpaTest.enabled }}
+          command: ["/bin/sh"]
+          args:
+            - "-c"
+            - "while true; do timeout 0.5s yes >/dev/null; sleep 0.5s; done"
+  {{- end }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.port }}
+              protocol: TCP
+  {{- if .Values.port2.enabled }}
+            - name: {{ .Values.namePort2 }} 
+              containerPort: {{ .Values.containerPort2 }}
+              protocol: TCP  
+  {{- end }}
+  
+
+
+  {{- if .Values.probe.enabled }}
+          # args:
+          # - /bin/sh
+          # - -c
+          # - touch /tmp/healthy;
+
+          readinessProbe:
+          {{- toYaml .Values.readinessProbe | nindent 12 }}          
+            # exec:
+            #   command:
+            #   - ls
+            #   - /tmp
+            # initialDelaySeconds: 5
+            # periodSeconds: 10
+            # failureThreshold: 3
+            # successThreshold: 1 
+            # timeoutSeconds: 1           
+          livenessProbe:
+          {{- toYaml .Values.livenessProbe | nindent 12 }}                    
+            # exec:
+            #   command:
+            #   - ls
+            #   - /tmp
+            # initialDelaySeconds: 5
+            # periodSeconds: 10
+            # failureThreshold: 3
+            # successThreshold: 1 
+            # timeoutSeconds: 1       
+  {{- end }}
+
+  # {{- if .Values.probe.enabled }}
+  #         livenessProbe:
+  #           httpGet:
+  #             path: /
+  #             port: http
+  #         readinessProbe:
+  #           httpGet:
+  #             path: /
+  #             port: http
+  # {{- end }}
+
+  #  {{- if .Values.timezone.enabled }}
+          volumeMounts:
+          - mountPath: /etc/localtime
+            name: tz-config
+      {{- if .Values.probe.enabled }}
+          - name: cm-health
+            mountPath: /tmp/
+     {{- end }}  
+     {{- if .Values.CmEnvFile.enabled }}
+          - name: cm-env
+            mountPath: /.env
+            subPath: .env
+     {{- end }}  
+
+     
+     
+  #  {{- end }}  
+          # - name: healthy
+          #   mountPath: /tmp/
+              # accessModes: ReadWriteOnce
+            # readOnly: false
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+      # {{- if .Values.timezone.enabled }}
+      volumes:
+      - name: tz-config
+        hostPath:
+          path: /usr/share/zoneinfo/Asia/Jakarta
+          type: ""
+      {{- if .Values.probe.enabled }}
+      - name: cm-health
+        configMap:
+          name: cm-health-{{ .Values.name }}
+      {{- end }} 
+
+      {{- if .Values.CmEnvFile.enabled }}
+      - name: cm-env
+        configMap:
+          name: cm-env-{{ .Values.name }}
+      {{- end }} 
+
+
+      # {{- end }} 
+      # - name: healthy
+      #   configMap:
+      #     # defaultMode: 0666
+      #     name: {{ .Values.name }}-configmap
+      #     items:
+      #       - key: healthy
+      #         path: healthy
+
+
+
+      {{- if .Values.selector.enabled }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- end }}
+
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

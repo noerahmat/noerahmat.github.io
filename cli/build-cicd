@@ -1,0 +1,2 @@
+#docker run -e "env_var_name=another_value" alpine env
+docker build -t newrahmat/cicd -f Dockerfile .
