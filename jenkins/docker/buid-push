@@ -1,2 +1,0 @@
-docker build -t newrahmat/jenkins-blueocean:v1.0.0 .
-docker push newrahmat/jenkins-blueocean:v1.0.0

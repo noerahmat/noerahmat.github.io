@@ -1,11 +1,1 @@
-FROM nginx:1.14.2-alpine
-#set working directory
-WORKDIR /usr/share/nginx/html/
-#copy build source
-COPY . .
-#set env file
-COPY default.conf /etc/nginx/conf.d/default.conf
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
+FROM gcr.io/google-containers/echoserver:1.8

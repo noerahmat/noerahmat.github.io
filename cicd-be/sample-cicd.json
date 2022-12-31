@@ -1,8 +1,0 @@
-{
-    "IMAGE": "image_value",
-    "CLUSTER": "cluster_value",
-    "PROJECT": "project_value",
-    "DEPLOYMENT": "deployment_value",
-    "NODETYPE": "nodetype_value",
-    "PORT": "port_value"
-}

@@ -1,1 +1,0 @@
-https://www.jenkins.io/doc/tutorials/build-a-multibranch-pipeline-project/

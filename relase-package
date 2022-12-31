@@ -1,2 +1,0 @@
-helm package helm-chart-sources/*
-helm repo index --url https://newrahmat.bitbucket.io --merge index.yaml .
